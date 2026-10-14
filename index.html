@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>颜康福 - 检验报告全数据看板</title>
+    <style>
+        :root {
+            --bg-color: #f4f7f9;
+            --card-bg: #ffffff;
+            --primary-blue: #1e88e5;
+            --light-blue: #e3f2fd;
+            --text-main: #333333;
+            --text-sub: #666666;
+            --danger-red: #e53935;
+            --success-green: #43a047;
+            --border-color: #eeeeee;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: var(--bg-color); color: var(--text-main); font-size: 14px; line-height: 1.5; padding-bottom: 20px; }
+        .container { max-width: 600px; margin: 0 auto; padding: 10px; }
+
+        .header-card { background: linear-gradient(135deg, #1e88e5, #42a5f5); color: white; padding: 16px; border-radius: 12px; margin-bottom: 15px; box-shadow: 0 4px 10px rgba(30, 136, 229, 0.2); }
+        .header-card h1 { font-size: 18px; margin-bottom: 8px; font-weight: 600; }
+        .patient-info { display: flex; flex-wrap: wrap; gap: 10px; font-size: 13px; opacity: 0.9; }
+
+        .diagnosis-box { background-color: var(--card-bg); border-left: 4px solid var(--primary-blue); padding: 12px; border-radius: 8px; margin-bottom: 15px; box-shadow: 0 2px 6px rgba(0,0,0,0.05); }
+        .diagnosis-box h3 { font-size: 15px; color: var(--primary-blue); margin-bottom: 6px; }
+        .diagnosis-box p { font-size: 13px; color: var(--text-sub); line-height: 1.6; }
+
+        details { background-color: var(--card-bg); border-radius: 10px; margin-bottom: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.03); overflow: hidden; }
+        summary { padding: 15px; font-weight: 600; font-size: 15px; cursor: pointer; list-style: none; display: flex; justify-content: space-between; align-items: center; background-color: var(--card-bg); border-bottom: 1px solid transparent; transition: all 0.2s; }
+        details[open] summary { border-bottom: 1px solid var(--border-color); background-color: var(--light-blue); color: var(--primary-blue); }
+        summary::-webkit-details-marker { display: none; }
+        summary::after { content: "▼"; font-size: 10px; color: var(--text-sub); transition: transform 0.3s; }
+        details[open] summary::after { transform: rotate(180deg); color: var(--primary-blue); }
+
+        .indicator-list { padding: 5px 10px; }
+        .indicator-item { display: flex; justify-content: space-between; align-items: flex-start; padding: 12px 8px; border-bottom: 1px dashed var(--border-color); cursor: pointer; transition: background-color 0.2s; }
+        .indicator-item:last-child { border-bottom: none; }
+        .indicator-item:active { background-color: #f9f9f9; }
+
+        .indicator-name { flex: 1; font-weight: 500; padding-right: 10px; word-break: break-all; }
+        .indicator-value-box { text-align: right; min-width: 130px; }
+        .indicator-value { font-weight: bold; font-size: 15px; }
+        .indicator-ref { font-size: 11px; color: var(--text-sub); margin-top: 2px; }
+        .abnormal { color: var(--danger-red); }
+        
+        .trend-info { font-size: 11px; margin-top: 4px; font-weight: normal; }
+        .delta-up { color: var(--danger-red); }
+        .delta-down { color: var(--success-green); }
+        .delta-stable { color: var(--text-sub); }
+
+        .chart-wrapper { width: 100%; display: none; border-top: 1px dashed var(--border-color); padding: 10px 0; background-color: #fafafa;}
+        .chart-wrapper.active { display: block; }
+        .chart-container { width: 100%; height: 180px; margin-bottom: 10px; position: relative; overflow: hidden; }
+        
+        .interpretation-box { background-color: var(--light-blue); border-radius: 8px; padding: 12px; margin-top: 5px; border-left: 4px solid var(--primary-blue); }
+        .interpretation-box p { font-size: 13px; margin-bottom: 6px; color: var(--text-main); line-height: 1.6; }
+        .interpretation-box p:last-child { margin-bottom: 0; }
+        .interpretation-box .label { font-weight: bold; color: var(--primary-blue); }
+
+        canvas { display: block; width: 100%; height: 100%; }
+        .single-data-tip, .error-tip { font-size: 12px; color: #999; text-align: center; padding: 60px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header-card">
+            <h1>颜康福的检验报告趋势</h1>
+            <div class="patient-info">
+                <span>男 / 55岁</span>
+                <span>病历号: 0007340107</span>
+                <span>诊断: 肝硬化(F4)</span>
+            </div>
+        </div>
+
+        <div class="diagnosis-box">
+            <h3>综合诊断与总体解读</h3>
+            <p><b>整体趋势：</b>病毒DNA阴性，控制良好。肝弹指标（15.1→13.2kPa）略有好转，但仍属F4肝硬化。最需警惕的是血小板持续下降（98→93→79↓），结合脾大，提示脾功能亢进加重，需防范出血风险。肿瘤标志物全正常。总胆红素和转氨酶已恢复正常。</p>
+        </div>
+
+        <div id="accordion-container"></div>
+        <div class="tip">点击任意指标查看趋势图、变化解读与专业建议</div>
+    </div>
+
+    <script>
+        const medicalData = [
+            {
+                groupName: "肝功能 (生化)",
+                indicators: [
+                    { name: "总胆红素 (TBIL)", unit: "umol/L", ref: "3-22", values: [{date: "2026-03-23", val: 21.60, abnormal: true}, {date: "2026-07-27", val: 16.60, abnormal: false}, {date: "2026-10-12", val: 15.36, abnormal: false}], interpretation: "从异常升高(21.6)逐渐降至正常范围(15.36)，说明肝脏排泄胆红素的能力正在恢复。", suggestion: "继续保持当前治疗，避免饮酒和损肝药物。" },
+                    { name: "直接胆红素 (DBIL)", unit: "umol/L", ref: "0-6.84", values: [{date: "2026-03-23", val: 7.00, abnormal: true}, {date: "2026-07-27", val: 4.60, abnormal: false}, {date: "2026-10-12", val: 4.39, abnormal: false}], interpretation: "直接胆红素从轻度超标恢复至正常，提示胆道排泄通畅，黄疸消退。", suggestion: "无需特殊处理，定期复查即可。" },
+                    { name: "间接胆红素 (IBIL)", unit: "umol/L", ref: "2-15.22", values: [{date: "2026-07-27", val: 11.40, abnormal: false}, {date: "2026-10-12", val: 10.97, abnormal: false}], interpretation: "间接胆红素一直维持在正常范围，且数值稳定。", suggestion: "继续保持良好的生活习惯。" },
+                    { name: "谷丙转氨酶 (ALT)", unit: "U/L", ref: "0-42", values: [{date: "2026-03-23", val: 50, abnormal: true}, {date: "2026-07-27", val: 20, abnormal: false}, {date: "2026-10-12", val: 27, abnormal: false}], interpretation: "3月轻度异常升高(50)，随后恢复并稳定在20-27的正常范围，提示肝脏炎症活动得到有效控制。", suggestion: "避免劳累，慎用对肝脏有损害的药物，保持规律作息。" },
+                    { name: "谷草转氨酶 (AST)", unit: "U/L", ref: "0-40", values: [{date: "2026-03-23", val: 38, abnormal: false}, {date: "2026-07-27", val: 23, abnormal: false}, {date: "2026-10-12", val: 26, abnormal: false}], interpretation: "谷草转氨酶持续正常，肝细胞受损程度较轻。", suggestion: "继续维持当前状态，定期随访。" },
+                    { name: "谷氨酰转肽酶 (GGT)", unit: "U/L", ref: "2-73", values: [{date: "2026-03-23", val: 57, abnormal: false}, {date: "2026-07-27", val: 34, abnormal: false}, {date: "2026-10-12", val: 41, abnormal: false}], interpretation: "GGT数值正常，无胆道梗阻或酒精性肝损伤迹象。", suggestion: "继续保持，绝对禁酒。" },
+                    { name: "碱性磷酸酶 (ALP)", unit: "U/L", ref: "46-116", values: [{date: "2026-03-23", val: 92, abnormal: false}, {date: "2026-07-27", val: 83, abnormal: false}, {date: "2026-10-12", val: 78, abnormal: false}], interpretation: "ALP正常，未提示胆汁淤积。", suggestion: "无需特殊处理。" },
+                    { name: "乳酸脱氢酶 (LDH)", unit: "U/L", ref: "109-245", values: [{date: "2026-03-23", val: 152, abnormal: false}, {date: "2026-07-27", val: 156, abnormal: false}, {date: "2026-10-12", val: 156, abnormal: false}], interpretation: "LDH正常，无广泛组织损伤。", suggestion: "无特殊建议，定期复查。" },
+                    { name: "总蛋白 (TP)", unit: "g/L", ref: "60-85", values: [{date: "2026-03-23", val: 74.30, abnormal: false}, {date: "2026-07-27", val: 73.80, abnormal: false}, {date: "2026-10-12", val: 73.30, abnormal: false}], interpretation: "总蛋白稳定在正常范围，营养状态尚可。", suggestion: "保持均衡饮食。" },
+                    { name: "白蛋白 (ALB)", unit: "g/L", ref: "35-55", values: [{date: "2026-03-23", val: 44.62, abnormal: false}, {date: "2026-07-27", val: 43.84, abnormal: false}, {date: "2026-10-12", val: 45.10, abnormal: false}], interpretation: "白蛋白正常，提示肝脏合成蛋白质功能良好。", suggestion: "适量摄入优质蛋白（如鱼、蛋、奶、瘦肉）。" },
+                    { name: "球蛋白 (GLOB)", unit: "g/L", ref: "20-35", values: [{date: "2026-07-27", val: 29.96, abnormal: false}, {date: "2026-10-12", val: 28.20, abnormal: false}], interpretation: "球蛋白正常，免疫系统处于稳定状态。", suggestion: "无需特殊处理。" },
+                    { name: "白球比 (A/G)", unit: "", ref: "1.5-2.5", values: [{date: "2026-07-27", val: 1.5, abnormal: false}, {date: "2026-10-12", val: 1.6, abnormal: false}], interpretation: "白球比处于参考值下限边缘(1.5-1.6)。在肝硬化背景下，这是肝脏储备功能轻度受损的预警。", suggestion: "定期监测肝功能，注重高蛋白饮食，预防感染。" },
+                    { name: "胆碱酯酶 (CHE)", unit: "U/L", ref: "5900-12220", values: [{date: "2026-10-12", val: 7682, abnormal: false}], interpretation: "胆碱酯酶正常，肝脏合成功能尚可。", suggestion: "继续保持。" },
+                    { name: "总胆汁酸 (TBA)", unit: "umol/L", ref: "0.5-10", values: [{date: "2026-10-12", val: 5.4, abnormal: false}], interpretation: "总胆汁酸正常，肝脏排泄胆汁酸功能正常。", suggestion: "无需特殊处理。" }
+                ]
+            },
+            {
+                groupName: "肾功能与心肌酶",
+                indicators: [
+                    { name: "尿素氮 (BUN)", unit: "mmol/L", ref: "1.7-8.3", values: [{date: "2026-03-23", val: 6.04, abnormal: false}, {date: "2026-07-27", val: 4.43, abnormal: false}, {date: "2026-10-12", val: 5.54, abnormal: false}], interpretation: "尿素氮正常，肾脏排泄功能正常。", suggestion: "多饮水，避免过度劳累。" },
+                    { name: "肌酐 (CREA)", unit: "umol/L", ref: "45-104", values: [{date: "2026-03-23", val: 63, abnormal: false}, {date: "2026-07-27", val: 69, abnormal: false}, {date: "2026-10-12", val: 71, abnormal: false}], interpretation: "肌酐稳定在正常范围，无明显肾功能损害。", suggestion: "谨慎使用肾毒性药物（如非甾体抗炎药）。" },
+                    { name: "尿酸 (URIC)", unit: "umol/L", ref: "170-420", values: [{date: "2026-03-23", val: 293, abnormal: false}, {date: "2026-07-27", val: 306, abnormal: false}, {date: "2026-10-12", val: 299, abnormal: false}], interpretation: "尿酸正常，无高尿酸血症或痛风风险。", suggestion: "保持低嘌呤饮食。" },
+                    { name: "肌酸激酶 (CK)", unit: "U/L", ref: "55-170", values: [{date: "2026-10-12", val: 43, abnormal: true}], interpretation: "肌酸激酶偏低(43)，通常无临床病理意义，可能与个体差异或近期活动量少有关。", suggestion: "无需过于担心，适当进行有氧运动，下次复查观察即可。" },
+                    { name: "肌酸酶同功酶 (CK-MB)", unit: "U/L", ref: "0-25", values: [{date: "2026-10-12", val: 11, abnormal: false}], interpretation: "CK-MB正常，未见心肌损伤。", suggestion: "继续保持。" },
+                    { name: "肌红蛋白 (MYOG)", unit: "ng/ml", ref: "≤121", values: [{date: "2026-10-12", val: 22.80, abnormal: false}], interpretation: "肌红蛋白正常。", suggestion: "无需特殊处理。" }
+                ]
+            },
+            {
+                groupName: "血常规 (全项)",
+                indicators: [
+                    { name: "白细胞 (WBC)", unit: "10^9/L", ref: "3.5-9.5", values: [{date: "2026-03-23", val: 4.99, abnormal: false}, {date: "2026-07-27", val: 4.39, abnormal: false}, {date: "2026-10-12", val: 4.61, abnormal: false}], interpretation: "白细胞数量稳定在正常范围，机体免疫功能基础尚可。", suggestion: "注意保暖，预防感染。" },
+                    { name: "红细胞 (RBC)", unit: "10^12/L", ref: "4.3-5.8", values: [{date: "2026-03-23", val: 5.55, abnormal: false}, {date: "2026-07-27", val: 5.07, abnormal: false}, {date: "2026-10-12", val: 4.92, abnormal: false}], interpretation: "红细胞数量正常，无贫血表现。", suggestion: "保持营养均衡。" },
+                    { name: "血红蛋白 (HGB)", unit: "g/L", ref: "130-175", values: [{date: "2026-03-23", val: 168, abnormal: false}, {date: "2026-07-27", val: 154, abnormal: false}, {date: "2026-10-12", val: 151, abnormal: false}], interpretation: "血红蛋白正常，无贫血症状。", suggestion: "无需特殊处理。" },
+                    { name: "血小板 (PLT)", unit: "10^9/L", ref: "125-350", values: [{date: "2026-03-23", val: 98, abnormal: true}, {date: "2026-07-27", val: 93, abnormal: true}, {date: "2026-10-12", val: 79, abnormal: true}], interpretation: "血小板呈持续下降趋势（98→93→79），且均低于正常下限。结合脾大，提示肝硬化门静脉高压导致的脾功能亢进，脾脏破坏血小板增加。", suggestion: "密切关注牙龈、皮肤有无出血点。避免磕碰，饮食宜软烂，绝对避免坚硬带刺食物。若持续跌破50，请及时至肝胆专科就诊。" },
+                    { name: "中性粒细胞计数 (NEU#)", unit: "10^9/L", ref: "1.8-6.3", values: [{date: "2026-03-23", val: 3.30, abnormal: false}, {date: "2026-07-27", val: 2.79, abnormal: false}, {date: "2026-10-12", val: 3.16, abnormal: false}], interpretation: "中性粒细胞正常，无急性细菌感染。", suggestion: "继续保持。" },
+                    { name: "淋巴细胞计数 (LYM#)", unit: "10^9/L", ref: "1.1-3.2", values: [{date: "2026-03-23", val: 1.34, abnormal: false}, {date: "2026-07-27", val: 1.26, abnormal: false}, {date: "2026-10-12", val: 1.09, abnormal: true}], interpretation: "淋巴细胞轻微下降(1.09)，可能与脾功能亢进及肝硬化引起的免疫状态改变有关。", suggestion: "注意休息，预防病毒感染，定期随访。" },
+                    { name: "单核细胞计数 (MON#)", unit: "10^9/L", ref: "0.1-0.6", values: [{date: "2026-03-23", val: 0.29, abnormal: false}, {date: "2026-07-27", val: 0.27, abnormal: false}, {date: "2026-10-12", val: 0.32, abnormal: false}], interpretation: "单核细胞正常。", suggestion: "无需特殊处理。" },
+                    { name: "嗜酸性粒细胞计数 (EOS#)", unit: "10^9/L", ref: "0.02-0.52", values: [{date: "2026-03-23", val: 0.04, abnormal: false}, {date: "2026-07-27", val: 0.05, abnormal: false}, {date: "2026-10-12", val: 0.03, abnormal: false}], interpretation: "嗜酸性粒细胞正常。", suggestion: "继续保持。" },
+                    { name: "平均血小板体积 (MPV)", unit: "fL", ref: "6.5-12", values: [{date: "2026-03-23", val: 13.3, abnormal: true}, {date: "2026-07-27", val: 11.8, abnormal: false}, {date: "2026-10-12", val: 13.1, abnormal: true}], interpretation: "MPV偏高，提示骨髓代偿性产生体积较大的血小板，与血小板破坏增加（脾亢）相呼应。", suggestion: "结合血小板数量综合评估，防范出血风险。" },
+                    { name: "血小板分布宽度 (PDW)", unit: "%", ref: "9-17", values: [{date: "2026-03-23", val: 16.6, abnormal: false}, {date: "2026-07-27", val: 17.1, abnormal: true}, {date: "2026-10-12", val: 17.1, abnormal: true}], interpretation: "PDW轻度升高，提示血小板大小不均，反映了脾亢导致的血小板破坏与骨髓代偿增生的动态过程。", suggestion: "定期复查血常规，关注血小板数量变化。" },
+                    { name: "大型血小板比率 (P-LCR)", unit: "%", ref: "11-45", values: [{date: "2026-03-23", val: 49.4, abnormal: true}, {date: "2026-07-27", val: 38.4, abnormal: false}, {date: "2026-10-12", val: 47.5, abnormal: true}], interpretation: "大型血小板比率升高，与脾功能亢进导致的代偿性血小板生成有关。", suggestion: "密切监测血小板计数，警惕出血倾向。" },
+                    { name: "C反应蛋白 (CRP)", unit: "mg/l", ref: "0-10", values: [{date: "2026-10-12", val: 6.00, abnormal: false}], interpretation: "CRP正常，无全身炎症反应。", suggestion: "继续保持。" }
+                ]
+            },
+            {
+                groupName: "凝血功能",
+                indicators: [
+                    { name: "凝血酶原时间 (PT)", unit: "S", ref: "9.4-12.5", values: [{date: "2026-07-27", val: 11.60, abnormal: false}, {date: "2026-10-12", val: 13.30, abnormal: true}], interpretation: "PT从11.6延长至13.3，超出正常上限。提示肝脏合成凝血因子的功能减退，这与肝硬化进展有关。", suggestion: "注意安全防跌倒，避免剧烈运动。拔牙或手术前需告知医生。必要时遵医嘱补充维生素K。" },
+                    { name: "国际标准化比值 (INR)", unit: "", ref: "0.85-1.14", values: [{date: "2026-07-27", val: 1.07, abnormal: false}, {date: "2026-10-12", val: 1.07, abnormal: false}], interpretation: "INR稳定在正常范围，整体凝血功能尚在代偿范围内。", suggestion: "继续定期复查，观察PT的变化。" },
+                    { name: "部分凝血酶原时间 (APTT)", unit: "S", ref: "25.1-36.5", values: [{date: "2026-07-27", val: 31.50, abnormal: false}, {date: "2026-10-12", val: 33.30, abnormal: false}], interpretation: "APTT正常，内源性凝血途径无异常。", suggestion: "无需特殊处理。" },
+                    { name: "凝血酶时间 (TT)", unit: "S", ref: "10.3-16.6", values: [{date: "2026-07-27", val: 16.10, abnormal: false}, {date: "2026-10-12", val: 15.40, abnormal: false}], interpretation: "TT正常。", suggestion: "继续保持。" },
+                    { name: "纤维蛋白原 (FIB)", unit: "g/L", ref: "2.38-4.96", values: [{date: "2026-07-27", val: 2.66, abnormal: false}, {date: "2026-10-12", val: 2.53, abnormal: false}], interpretation: "纤维蛋白原正常，凝血物质合成尚可。", suggestion: "无需特殊处理。" },
+                    { name: "D-二聚体 (D-DI)", unit: "mg/L", ref: "<0.5", values: [{date: "2026-10-12", val: 0.19, abnormal: false}], interpretation: "D-二聚体正常，排除明显的血栓形成。", suggestion: "适当活动，避免久坐。" }
+                ]
+            },
+            {
+                groupName: "乙肝与病毒",
+                indicators: [
+                    { name: "乙肝表面抗原 (HBsAg)", unit: "IU/ml", ref: "<0.05", values: [{date: "2026-03-23", val: 947.632, abnormal: true}, {date: "2026-07-27", val: 1169.804, abnormal: true}], interpretation: "表面抗原数值较高且有所波动，提示体内仍有乙肝病毒存在。但在抗病毒治疗中，更重要的是看DNA定量。", suggestion: "坚持遵医嘱服用抗病毒药物，不可擅自停药。" },
+                    { name: "乙肝表面抗体 (HBsAb)", unit: "mIU/ml", ref: "<10", values: [{date: "2026-07-27", val: 4.000, abnormal: false}], interpretation: "表面抗体阴性，说明目前没有保护性抗体。", suggestion: "在病毒未完全清除前，无需注射疫苗，继续抗病毒治疗即可。" },
+                    { name: "乙肝e抗原 (HBeAg)", unit: "IU/ml", ref: "<0.100", values: [{date: "2026-07-27", val: 0.040, abnormal: false}], interpretation: "e抗原阴性，提示病毒复制活跃度较低。", suggestion: "继续保持。" },
+                    { name: "乙肝e抗体 (HBeAb)", unit: "IU/ml", ref: "<0.200", values: [{date: "2026-07-27", val: 0.336, abnormal: true}], interpretation: "e抗体阳性，结合表面抗原、核心抗体阳性，即为“小三阳”状态。", suggestion: "注意休息，避免劳累。" },
+                    { name: "乙肝核心抗体 (HBcAb)", unit: "IU/ml", ref: "<0.600", values: [{date: "2026-07-27", val: 10.000, abnormal: true}], interpretation: "核心抗体阳性，代表既往感染或现行感染。", suggestion: "结合其他指标综合判断，定期随访。" },
+                    { name: "乙肝DNA定量 (HBV-DNA)", unit: "IU/ml", ref: "0-50", values: [{date: "2026-07-27", val: 49, abnormal: false}], interpretation: "病毒DNA定量小于50 IU/ml（检测下限），说明抗病毒治疗效果显著，病毒复制已被完全抑制。", suggestion: "继续坚持抗病毒治疗，这是阻止肝硬化进展最关键的一步。" }
+                ]
+            },
+            {
+                groupName: "肝纤维化与肝弹",
+                indicators: [
+                    { name: "血清透明质酸 (HA)", unit: "ng/mL", ref: "<100", values: [{date: "2026-07-27", val: 103.93, abnormal: true}], interpretation: "透明质酸轻度偏高(103.93)，是肝纤维化的血清学指标之一，结合超声和肝弹结果，印证了肝硬化的存在。", suggestion: "继续抗纤维化治疗（如有），定期复查肝纤维化四项。" },
+                    { name: "III型前胶原N端肽 (PIIINP)", unit: "ng/mL", ref: "0-30", values: [{date: "2026-07-27", val: 8.64, abnormal: false}], interpretation: "PIIINP正常，肝纤维化合成活动不活跃。", suggestion: "继续保持。" },
+                    { name: "IV型胶原 (CoI IV)", unit: "ng/mL", ref: "<30", values: [{date: "2026-07-27", val: 25.05, abnormal: false}], interpretation: "IV型胶原正常，基底膜胶原沉积不明显。", suggestion: "无需特殊处理。" },
+                    { name: "层粘连蛋白 (LN)", unit: "ng/mL", ref: "<50", values: [{date: "2026-07-27", val: 9.54, abnormal: false}], interpretation: "层粘连蛋白正常。", suggestion: "保持良好生活习惯。" },
+                    { name: "肝脏硬度中位数 (SWE)", unit: "kPa", ref: "<5.48(F0)", values: [{date: "2026-03-24", val: 15.1, abnormal: true}, {date: "2026-07-28", val: 13.22, abnormal: true}], interpretation: "肝脏硬度从15.1kPa下降至13.22kPa。虽有所改善（提示肝纤维化可能部分逆转或炎症水肿消退），但仍远高于11.9kPa的F4级（肝硬化）标准。", suggestion: "坚持病因治疗（抗病毒），定期复查肝弹。绝对禁止饮酒，避免加重肝脏损伤。" }
+                ]
+            },
+            {
+                groupName: "肿瘤标志物",
+                indicators: [
+                    { name: "甲胎蛋白 (AFP)", unit: "ng/ml", ref: "0.5-8.1", values: [{date: "2026-07-27", val: 2.70, abnormal: false}], interpretation: "AFP正常，是筛查肝癌的重要指标，目前未见异常升高。", suggestion: "每3-6个月复查一次AFP和肝脏超声，坚持防癌筛查。" },
+                    { name: "癌胚抗原 (CEA)", unit: "ng/ml", ref: "0.3-5", values: [{date: "2026-07-27", val: 2.48, abnormal: false}], interpretation: "CEA正常，未见消化道肿瘤迹象。", suggestion: "定期复查。" },
+                    { name: "糖类抗原CA19-9", unit: "U/mL", ref: "0-39", values: [{date: "2026-07-27", val: 18.25, abnormal: false}], interpretation: "CA19-9正常。", suggestion: "注意胆囊结石的随访，若出现腹痛、发热及时就医。" }
+                ]
+            }
+        ];
+
+        function initPage() {
+            const accordionContainer = document.getElementById('accordion-container');
+
+            medicalData.forEach((group, gIndex) => {
+                const details = document.createElement('details');
+                details.open = gIndex === 0;
+                
+                const summary = document.createElement('summary');
+                summary.textContent = group.groupName;
+                details.appendChild(summary);
+
+                const listDiv = document.createElement('div');
+                listDiv.className = 'indicator-list';
+
+                group.indicators.forEach((indicator, iIndex) => {
+                    const latestData = indicator.values[indicator.values.length - 1];
+                    const prevData = indicator.values.length > 1 ? indicator.values[indicator.values.length - 2] : null;
+                    
+                    let deltaText = '';
+                    let deltaClass = '';
+                    if (prevData) {
+                        const diff = (latestData.val - prevData.val).toFixed(2);
+                        if (diff > 0) { deltaText = `较上次 ↑${diff}`; deltaClass = 'delta-up'; }
+                        else if (diff < 0) { deltaText = `较上次 ↓${Math.abs(diff)}`; deltaClass = 'delta-down'; }
+                        else { deltaText = `较上次持平`; deltaClass = 'delta-stable'; }
+                    } else {
+                        deltaText = '单次检测';
+                        deltaClass = 'delta-stable';
+                    }
+
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = 'indicator-item';
+                    
+                    const chartId = `chart-${gIndex}-${iIndex}`;
+                    itemDiv.onclick = () => toggleChart(itemDiv, indicator, chartId);
+
+                    itemDiv.innerHTML = `
+                        <div class="indicator-name">${indicator.name}</div>
+                        <div class="indicator-value-box">
+                            <div class="indicator-value ${latestData.abnormal ? 'abnormal' : ''}">
+                                ${latestData.val} <span style="font-size:12px; font-weight:normal; color:#666;">${indicator.unit}</span>
+                            </div>
+                            <div class="indicator-ref">参考: ${indicator.ref}</div>
+                            ${indicator.values.length > 1 ? `<div class="trend-info ${deltaClass}">${deltaText}</div>` : ''}
+                        </div>
+                    `;
+
+                    const wrapperDiv = document.createElement('div');
+                    wrapperDiv.className = 'chart-wrapper';
+                    wrapperDiv.id = `wrapper-${chartId}`;
+
+                    const chartDiv = document.createElement('div');
+                    chartDiv.className = 'chart-container';
+                    chartDiv.id = chartId;
+
+                    const interpretDiv = document.createElement('div');
+                    interpretDiv.className = 'interpretation-box';
+                    interpretDiv.innerHTML = `
+                        <p><span class="label">📈 变化诊断：</span>${indicator.interpretation}</p>
+                        <p><span class="label">💡 专业建议：</span>${indicator.suggestion}</p>
+                    `;
+
+                    wrapperDiv.appendChild(chartDiv);
+                    wrapperDiv.appendChild(interpretDiv);
+
+                    const container = document.createElement('div');
+                    container.appendChild(itemDiv);
+                    container.appendChild(wrapperDiv);
+                    listDiv.appendChild(container);
+                });
+
+                details.appendChild(listDiv);
+                accordionContainer.appendChild(details);
+            });
+        }
+
+        function toggleChart(element, indicator, chartId) {
+            const wrapperDiv = document.getElementById(`wrapper-${chartId}`);
+            const isActive = wrapperDiv.classList.contains('active');
+            
+            document.querySelectorAll('.chart-wrapper').forEach(div => {
+                div.classList.remove('active');
+            });
+
+            if (!isActive) {
+                wrapperDiv.classList.add('active');
+                setTimeout(() => {
+                    const chartContainer = document.getElementById(chartId);
+                    if (indicator.values.length > 1) {
+                        drawNativeChart(chartContainer, indicator);
+                    } else {
+                        chartContainer.innerHTML = '<div class="single-data-tip">仅有一次检测记录，暂无趋势图</div>';
+                    }
+                }, 50);
+            }
+        }
+
+        function drawNativeChart(container, indicator) {
+            container.innerHTML = '';
+            const canvas = document.createElement('canvas');
+            container.appendChild(canvas);
+            
+            const width = container.clientWidth || 300;
+            const height = container.clientHeight || 180;
+            
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = width * dpr;
+            canvas.height = height * dpr;
+            canvas.style.width = width + 'px';
+            canvas.style.height = height + 'px';
+            
+            const ctx = canvas.getContext('2d');
+            ctx.scale(dpr, dpr);
+
+            const padding = { top: 20, right: 20, bottom: 25, left: 40 };
+            const graphWidth = width - padding.left - padding.right;
+            const graphHeight = height - padding.top - padding.bottom;
+
+            const data = indicator.values;
+            const values = data.map(d => d.val);
+            const maxVal = Math.max(...values);
+            const minVal = Math.min(...values);
+            
+            let range = maxVal - minVal;
+            if (range === 0) range = Math.abs(maxVal) * 0.2 || 1;
+            
+            const yMax = maxVal + range * 0.1;
+            const yMin = Math.max(0, minVal - range * 0.1);
+
+            ctx.strokeStyle = '#eeeeee';
+            ctx.lineWidth = 1;
+            ctx.fillStyle = '#666666';
+            ctx.font = '10px sans-serif';
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'middle';
+
+            const ySteps = 4;
+            for (let i = 0; i <= ySteps; i++) {
+                const val = yMax - (i * (yMax - yMin) / ySteps);
+                const y = padding.top + graphHeight * (i / ySteps);
+                ctx.beginPath();
+                ctx.moveTo(padding.left, y);
+                ctx.lineTo(width - padding.right, y);
+                ctx.stroke();
+                ctx.fillText(val.toFixed(1), padding.left - 5, y);
+            }
+
+            const xStep = graphWidth / (data.length - 1 || 1);
+            const points = data.map((d, i) => {
+                const x = padding.left + i * xStep;
+                const ratio = (d.val - yMin) / (yMax - yMin);
+                const y = padding.top + graphHeight - (ratio * graphHeight);
+                return { x, y, val: d.val, date: d.date.substring(5) };
+            });
+
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'top';
+            points.forEach(p => {
+                ctx.fillText(p.date, p.x, height - padding.bottom + 5);
+            });
+
+            ctx.beginPath();
+            ctx.strokeStyle = '#42a5f5';
+            ctx.lineWidth = 3;
+            ctx.lineJoin = 'round';
+            points.forEach((p, i) => {
+                if (i === 0) ctx.moveTo(p.x, p.y);
+                else ctx.lineTo(p.x, p.y);
+            });
+            ctx.stroke();
+
+            ctx.beginPath();
+            points.forEach((p, i) => {
+                if (i === 0) ctx.moveTo(p.x, p.y);
+                else ctx.lineTo(p.x, p.y);
+            });
+            ctx.lineTo(points[points.length - 1].x, padding.top + graphHeight);
+            ctx.lineTo(points[0].x, padding.top + graphHeight);
+            ctx.closePath();
+            const gradient = ctx.createLinearGradient(0, padding.top, 0, padding.top + graphHeight);
+            gradient.addColorStop(0, 'rgba(66, 165, 245, 0.4)');
+            gradient.addColorStop(1, 'rgba(66, 165, 245, 0.05)');
+            ctx.fillStyle = gradient;
+            ctx.fill();
+
+            points.forEach(p => {
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+                ctx.fillStyle = '#1e88e5';
+                ctx.fill();
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                ctx.fillStyle = '#333333';
+                ctx.font = 'bold 11px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'bottom';
+                ctx.fillText(p.val, p.x, p.y - 8);
+            });
+        }
+
+        window.addEventListener('DOMContentLoaded', initPage);
+    </script>
+</body>
+</html>
