@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>颜康福 - 检验报告全数据看板</title>
+    <title>颜康福 - 检验与影像报告看板</title>
     <style>
         :root {
             --bg-color: #f4f7f9;
@@ -68,7 +68,7 @@
 <body>
     <div class="container">
         <div class="header-card">
-            <h1>颜康福的检验报告趋势</h1>
+            <h1>颜康福的检验与影像报告趋势</h1>
             <div class="patient-info">
                 <span>男 / 55岁</span>
                 <span>病历号: 0007340107</span>
@@ -78,7 +78,7 @@
 
         <div class="diagnosis-box">
             <h3>综合诊断与总体解读</h3>
-            <p><b>整体趋势：</b>病毒DNA阴性，控制良好。肝弹指标（15.1→13.2kPa）略有好转，但仍属F4肝硬化。最需警惕的是血小板持续下降（98→93→79↓），结合脾大，提示脾功能亢进加重，需防范出血风险。肿瘤标志物全正常。总胆红素和转氨酶已恢复正常。</p>
+            <p><b>整体趋势：</b>乙肝病毒DNA阴性，控制良好。肝弹指标（15.1→13.2kPa）略有好转，但仍属F4肝硬化。最需警惕的是血小板持续下降（98→93→79↓）及门静脉增宽（11→13mm），结合脾大，提示门静脉高压及脾功能亢进加重，需防范消化道出血。近期肠镜发现多发息肉，病理提示“管状腺瘤伴低级别上皮内瘤变”，虽已切除，但需定期复查。肿瘤标志物正常。</p>
         </div>
 
         <div id="accordion-container"></div>
@@ -87,6 +87,25 @@
 
     <script>
         const medicalData = [
+            {
+                groupName: "内镜与病理（肠镜）",
+                indicators: [
+                    { name: "结直肠多发息肉 (病理确诊)", unit: "", ref: "无息肉", values: [], isText: true, interpretation: "10月13日肠镜发现十余枚扁平息肉(0.2-0.4cm)，已行APC处理。10月15日病理报告确诊为：(直肠)管状腺瘤，伴低级别上皮内瘤变。", suggestion: "管状腺瘤伴低级别上皮内瘤变属于癌前病变，但风险相对较低，且已在内镜下切除。建议术后1年内复查肠镜，以防复发。因患者有肝硬化及凝血异常(PT延长)，近期需密切观察有无大便带血。" },
+                    { name: "痔疮", unit: "", ref: "无", values: [], isText: true, interpretation: "肠镜提示肛管可见痔疮。肝硬化患者门静脉高压可能间接导致直肠静脉回流不畅，诱发或加重痔疮。", suggestion: "多吃蔬菜水果，保持大便通畅，避免久坐久蹲。如果出现便血，需与肠道息肉切除后的出血相鉴别，及时就医。" },
+                    { name: "肠道清洁度评分", unit: "分", ref: "≥6分", values: [{date: "2026-10-13", val: 7, abnormal: false}], interpretation: "波士顿评分总分7分（右半2分，横结肠2分，左半3分），肠道准备良好，病变不易被遗漏。", suggestion: "下次复查肠镜时，继续保持良好的肠道准备。" }
+                ]
+            },
+            {
+                groupName: "超声与肝弹（影像学）",
+                indicators: [
+                    { name: "肝脏硬度中位数 (SWE)", unit: "kPa", ref: "<5.48(F0)", values: [{date: "2026-03-24", val: 15.1, abnormal: true}, {date: "2026-07-28", val: 13.22, abnormal: true}], interpretation: "肝脏硬度从15.1kPa下降至13.22kPa。虽有所改善（提示肝纤维化可能部分逆转或炎症水肿消退），但仍远高于11.9kPa的F4级（肝硬化）标准。", suggestion: "坚持病因治疗（抗病毒），定期复查肝弹。绝对禁止饮酒，避免加重肝脏损伤。" },
+                    { name: "门静脉主干内径", unit: "mm", ref: "<13", values: [{date: "2026-03-24", val: 11, abnormal: false}, {date: "2026-07-28", val: 13, abnormal: true}], interpretation: "门静脉内径从11mm增宽至13mm，达到正常上限边缘/增宽。这是肝硬化门静脉高压的直接证据，压力增高可能导致食管胃底静脉曲张。", suggestion: "建议行胃镜检查排除食管胃底静脉曲张。饮食务必软烂，避免坚硬、带刺、粗糙食物，以防划破血管引起大出血。" },
+                    { name: "脾脏厚度", unit: "mm", ref: "<40", values: [{date: "2026-03-24", val: 44, abnormal: true}, {date: "2026-04-23", val: 43, abnormal: true}, {date: "2026-07-28", val: 46, abnormal: true}], interpretation: "脾脏厚度呈持续肿大状态（正常<40mm）。结合血小板持续下降，明确提示脾功能亢进，脾脏破坏血细胞增加。", suggestion: "密切关注血常规，若血小板持续跌破50，请及时至肝胆专科就诊。避免磕碰，注意安全。" },
+                    { name: "脾脏长度", unit: "mm", ref: "<110", values: [{date: "2026-03-24", val: 134, abnormal: true}, {date: "2026-04-23", val: 134, abnormal: true}, {date: "2026-07-28", val: 143, abnormal: true}], interpretation: "脾脏长径从134mm增大至143mm，进一步印证脾脏肿大。", suggestion: "定期复查腹部超声和血常规，评估脾亢进展。" },
+                    { name: "胆囊结石情况", unit: "", ref: "无结石", values: [], isText: true, interpretation: "3月报告：囊颈部多发细小强回声光团（约21*10mm）；4月报告：囊内强回声团堆积（约46.9*5.5mm）；7月报告：囊颈部多发细小强回声光团（约32*13mm）。结石持续存在。", suggestion: "若无腹痛、发热、黄疸，暂不需手术。因肝硬化凝血功能差，手术风险大，建议保守观察。若出现右上腹剧痛，需立即就医。" },
+                    { name: "肝脏实质回声（定性）", unit: "", ref: "均匀", values: [], isText: true, interpretation: "3月：包膜凹凸不平，实质回声增粗；4月：体积略小，实质回声减低；7月：包膜欠光整，实质回声增粗，分布欠均匀。影像学改变与肝硬化诊断一致。", suggestion: "影像学结构改变不可逆，重点在于延缓进展。坚持抗病毒治疗，避免肝脏进一步受损。" }
+                ]
+            },
             {
                 groupName: "肝功能 (生化)",
                 indicators: [
@@ -157,13 +176,12 @@
                 ]
             },
             {
-                groupName: "肝纤维化与肝弹",
+                groupName: "肝纤维化四项",
                 indicators: [
                     { name: "血清透明质酸 (HA)", unit: "ng/mL", ref: "<100", values: [{date: "2026-07-27", val: 103.93, abnormal: true}], interpretation: "透明质酸轻度偏高(103.93)，是肝纤维化的血清学指标之一，结合超声和肝弹结果，印证了肝硬化的存在。", suggestion: "继续抗纤维化治疗（如有），定期复查肝纤维化四项。" },
                     { name: "III型前胶原N端肽 (PIIINP)", unit: "ng/mL", ref: "0-30", values: [{date: "2026-07-27", val: 8.64, abnormal: false}], interpretation: "PIIINP正常，肝纤维化合成活动不活跃。", suggestion: "继续保持。" },
                     { name: "IV型胶原 (CoI IV)", unit: "ng/mL", ref: "<30", values: [{date: "2026-07-27", val: 25.05, abnormal: false}], interpretation: "IV型胶原正常，基底膜胶原沉积不明显。", suggestion: "无需特殊处理。" },
-                    { name: "层粘连蛋白 (LN)", unit: "ng/mL", ref: "<50", values: [{date: "2026-07-27", val: 9.54, abnormal: false}], interpretation: "层粘连蛋白正常。", suggestion: "保持良好生活习惯。" },
-                    { name: "肝脏硬度中位数 (SWE)", unit: "kPa", ref: "<5.48(F0)", values: [{date: "2026-03-24", val: 15.1, abnormal: true}, {date: "2026-07-28", val: 13.22, abnormal: true}], interpretation: "肝脏硬度从15.1kPa下降至13.22kPa。虽有所改善（提示肝纤维化可能部分逆转或炎症水肿消退），但仍远高于11.9kPa的F4级（肝硬化）标准。", suggestion: "坚持病因治疗（抗病毒），定期复查肝弹。绝对禁止饮酒，避免加重肝脏损伤。" }
+                    { name: "层粘连蛋白 (LN)", unit: "ng/mL", ref: "<50", values: [{date: "2026-07-27", val: 9.54, abnormal: false}], interpretation: "层粘连蛋白正常。", suggestion: "保持良好生活习惯。" }
                 ]
             },
             {
@@ -181,7 +199,8 @@
 
             medicalData.forEach((group, gIndex) => {
                 const details = document.createElement('details');
-                details.open = gIndex === 0;
+                // 默认展开前两个最新/最重要的分组
+                details.open = (gIndex === 0 || gIndex === 1);
                 
                 const summary = document.createElement('summary');
                 summary.textContent = group.groupName;
@@ -191,17 +210,17 @@
                 listDiv.className = 'indicator-list';
 
                 group.indicators.forEach((indicator, iIndex) => {
-                    const latestData = indicator.values[indicator.values.length - 1];
+                    const latestData = indicator.values.length > 0 ? indicator.values[indicator.values.length - 1] : null;
                     const prevData = indicator.values.length > 1 ? indicator.values[indicator.values.length - 2] : null;
                     
                     let deltaText = '';
                     let deltaClass = '';
-                    if (prevData) {
+                    if (prevData && latestData) {
                         const diff = (latestData.val - prevData.val).toFixed(2);
                         if (diff > 0) { deltaText = `较上次 ↑${diff}`; deltaClass = 'delta-up'; }
                         else if (diff < 0) { deltaText = `较上次 ↓${Math.abs(diff)}`; deltaClass = 'delta-down'; }
                         else { deltaText = `较上次持平`; deltaClass = 'delta-stable'; }
-                    } else {
+                    } else if (latestData) {
                         deltaText = '单次检测';
                         deltaClass = 'delta-stable';
                     }
@@ -212,14 +231,23 @@
                     const chartId = `chart-${gIndex}-${iIndex}`;
                     itemDiv.onclick = () => toggleChart(itemDiv, indicator, chartId);
 
-                    itemDiv.innerHTML = `
-                        <div class="indicator-name">${indicator.name}</div>
-                        <div class="indicator-value-box">
+                    let valueHtml = '';
+                    if (latestData) {
+                        valueHtml = `
                             <div class="indicator-value ${latestData.abnormal ? 'abnormal' : ''}">
                                 ${latestData.val} <span style="font-size:12px; font-weight:normal; color:#666;">${indicator.unit}</span>
                             </div>
                             <div class="indicator-ref">参考: ${indicator.ref}</div>
                             ${indicator.values.length > 1 ? `<div class="trend-info ${deltaClass}">${deltaText}</div>` : ''}
+                        `;
+                    } else {
+                        valueHtml = `<div class="indicator-value" style="font-size:13px; color:#666;">详见描述</div>`;
+                    }
+
+                    itemDiv.innerHTML = `
+                        <div class="indicator-name">${indicator.name}</div>
+                        <div class="indicator-value-box">
+                            ${valueHtml}
                         </div>
                     `;
 
@@ -264,10 +292,16 @@
                 wrapperDiv.classList.add('active');
                 setTimeout(() => {
                     const chartContainer = document.getElementById(chartId);
-                    if (indicator.values.length > 1) {
+                    // 判断是否有数值数据且不止一个点
+                    if (indicator.values && indicator.values.length > 1) {
+                        chartContainer.style.display = 'block';
                         drawNativeChart(chartContainer, indicator);
+                    } else if (indicator.values && indicator.values.length === 1) {
+                        chartContainer.style.display = 'block';
+                        chartContainer.innerHTML = '<div class="single-data-tip">仅有一次数值记录，暂无趋势图（详见下方解读）</div>';
                     } else {
-                        chartContainer.innerHTML = '<div class="single-data-tip">仅有一次检测记录，暂无趋势图</div>';
+                        // 纯文字描述型指标（如超声结论、病理结果）
+                        chartContainer.style.display = 'none';
                     }
                 }, 50);
             }
